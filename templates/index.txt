@@ -230,7 +230,7 @@ async function sendMessage() {
                 <div class="tips">
                     <strong>Recommended Support:</strong>
                     <ul>
-                        ${data.coping_tips.map(tip => `<li>${tip}</li>`).join('')}
+                        ${(data.coping_tips || []).map(tip => `<li>${tip}</li>`).join('')}
                     </ul>
                 </div>
 
@@ -238,7 +238,7 @@ async function sendMessage() {
                 <div class="action-plan">
                     <strong>🎯 Personalized Action Plan</strong>
                     <ul>
-                        ${data.personalized_plan.map(item => `<li>${item}</li>`).join('')}
+                        ${(data.personalized_plan || []).map(item => `<li>${item}</li>`).join('')}
                     </ul>
                 </div>
                 ` : ''}
