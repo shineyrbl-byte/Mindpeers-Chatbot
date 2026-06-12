@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MindPeers AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div class="chat-container">
+
+    <div class="header">
+        <button class="dark-toggle" onclick="toggleDarkMode()">🌙</button>
+        <h1>🧠 MindPeers AI Assistant</h1>
+        <p>Your Mental Wellness Companion</p>
+    </div>
+
+    <div id="chat-box">
+        <div class="bot-message">
+            👋 Hello! I'm MindPeers AI.
+
+            I can help you explore emotions, stress, anxiety, burnout and overall wellbeing.
+
+            How are you feeling today?
+            
+            <div class="checkin-section">
+                <p><strong>Today's Mood Check-In</strong></p>
+
+                <div class="checkin-buttons">
+                    <button onclick="quickCheck('I feel great today')">😊 Great</button>
+                    <button onclick="quickCheck('I feel good today')">🙂 Good</button>
+                    <button onclick="quickCheck('I feel okay today')">😐 Okay</button>
+                    <button onclick="quickCheck('I feel stressed today')">😟 Stressed</button>
+                    <button onclick="quickCheck('I feel low today')">😔 Low Mood</button>
+                    <button onclick="quickCheck('I feel overwhelmed today')">😫 Overwhelmed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="Share what's on your mind...">
+        <button onclick="sendMessage()">💬 Send</button>
+    </div>
+    <div class="report-buttons">
+
+        <button id="summaryBtn">
+            📄 Session Summary
+        </button>
+        <button id="copySummaryBtn">
+            📋 Copy Summary
+        </button>
+        <button id="downloadReportBtn">
+            ⬇ Download Report
+        </button>
+    </div>
+
+    <p class="disclaimer">
+        This chatbot is not a replacement for professional mental health care.
+    </p>
+
+</div>
+<div id="summaryModal" class="modal">
+
+    <div class="modal-content">
+
+        <h3>Session Summary</h3>
+
+        <pre id="summaryText"></pre>
+
+        <button onclick="closeSummary()">
+            Close
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+function quickCheck(text){
+
+    document.getElementById("user-input").value = text;
+
+    sendMessage();
+}
+let latestSummary = "";
+let latestEmotion = "";
+let latestRisk = "";
+let latestWellness = "";
+let latestTherapist = "";
+let latestTrigger = "";
+let latestBurnout = "";
+let latestStrength = "";
+let latestResource = "";
+let latestAction = "";
+let latestTips = [];
+let latestPlan = [];
+let latestMoodTrend = "";
+let latestDetectedEmotions = [];
+let latestSleepIssue = false;
+
+async function sendMessage() {
+
+    const input = document.getElementById('user-input');
+    const chatBox = document.getElementById('chat-box');
+
+    const userMessage = input.value.trim();
+
+    if (!userMessage) return;
+
+    chatBox.innerHTML += `
+        <div class="user-message">
+            <strong>You:</strong> ${userMessage}
+        </div>
+    `;
+
+    input.value = '';
+// Show thinking message
+    chatBox.innerHTML += `
+        <div class="bot-message" id="thinking">
+            🧠 <strong>MindPeers AI</strong><br>
+            <em>Understanding how you're feeling...</em>
+        </div>
+    `;
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+
+    try {
+
+        const response = await fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: userMessage
+            })
+        });
+
+        const data = await response.json();
+
+        latestSummary = data.session_summary || "";
+        latestEmotion = data.emotion || "";
+        latestRisk = data.risk_level || "";
+        latestWellness = data.wellness_score || "";
+        latestTherapist = data.therapist_type || "";
+        latestTrigger = data.trigger || "";
+        latestBurnout = data.burnout_index || "";
+        latestStrength = data.strength || "Not Detected";
+        latestResource = data.resource || "";
+        latestAction = data.recommended_action || "";
+        latestTips = data.coping_tips || [];
+        latestPlan = data.personalized_plan || [];
+        latestMoodTrend = data.recent_moods || "";
+        latestDetectedEmotions = data.detected_emotions || data.all_emotions || [];
+        latestSleepIssue = data.sleep_issue || false;
+
+        document.getElementById("thinking").remove();
+
+        console.log(data);
+
+        const emotionEmoji = {
+            "Stress": "😣",
+            "Anxiety": "😟",
+            "Burnout": "🥱",
+            "Loneliness": "😔",
+            "Low Mood": "😢",
+            "General": "🙂"
+        };
+
+        let riskClass = "risk-low";
+
+        if (data.risk_level === "Medium") {
+            riskClass = "risk-medium";
+        }
+
+        if (data.risk_level === "High") {
+            riskClass = "risk-high";
+        }
+
+        let resourceLinks = {
+            "5-Minute Breathing Exercise": "https://www.youtube.com/results?search_query=5+minute+breathing+exercise",
+            "Stress Management Guide": "https://www.youtube.com/results?search_query=stress+management+techniques",
+            "Burnout Recovery Tips": "https://www.youtube.com/results?search_query=burnout+recovery+tips",
+            "Social Connection Activities": "https://www.youtube.com/results?search_query=loneliness+social+connection+activities",
+            "Positive Habit Building Guide": "https://www.youtube.com/results?search_query=positive+habit+building+mental+health",
+            "General Wellness Articles": "https://www.youtube.com/results?search_query=mental+wellness+tips"
+        };
+
+        let resourceLink = resourceLinks[data.resource] || "https://www.youtube.com/results?search_query=mental+wellness+support";
+
+        chatBox.innerHTML += `
+            <div class="bot-message">
+                <strong>MindPeers AI:</strong>
+
+                <div class="emotion-risk">
+                    <h4>🧠 Emotional Insights</h4>
+
+                    <strong>Emotion:</strong> ${emotionEmoji[data.emotion] || "🙂"} ${data.emotion}<br>
+
+                    <strong>Trigger:</strong> ${data.trigger}<br>
+
+                    <strong>Risk Level:</strong>
+                    <span class="${riskClass}">${data.risk_level}</span><br>
+
+                    ${data.risk_level !== "High" ? `
+                        <strong>Wellness Score:</strong> ${data.wellness_score}/100
+
+                    <div class="score-bar">
+                        <div class="score-fill" style="width:${data.wellness_score}%"></div>
+                    </div>
+
+                    <strong>Burnout Index:</strong> ${data.burnout_index}<br>
+
+                    <strong>Strength:</strong> ${data.strength || "Not Detected"}<br>
+
+                    <strong>Resource:</strong>
+                    <a href="${resourceLink}" target="_blank">${data.resource}</a><br>
+
+                    <strong>Mood Trend:</strong> ${data.recent_moods}<br>
+            ` : ''}
+
+                    <strong>Suggested Professional:</strong> ${data.therapist_type}<br>
+
+                    <strong>Recommended Action:</strong> ${data.recommended_action}
+                </div>
+
+                <div class="tips">
+                    <strong>Recommended Support:</strong>
+                    <ul>
+                        ${data.coping_tips.map(tip => `<li>${tip}</li>`).join('')}
+                    </ul>
+                </div>
+
+                ${data.personalized_plan ? `
+                <div class="action-plan">
+                    <strong>🎯 Personalized Action Plan</strong>
+                    <ul>
+                        ${data.personalized_plan.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                <br>
+
+                ${data.reply}
+            </div>
+        `;
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+    } catch(error) {
+
+        console.error(error);
+
+        chatBox.innerHTML += `
+            <div class="bot-message">
+                Error connecting to chatbot.
+            </div>
+        `;
+    }
+}
+
+document.getElementById("user-input").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        sendMessage();
+    }
+});
+
+
+document.getElementById("summaryBtn").onclick = function(){
+
+    document.getElementById("summaryModal").style.display = "block";
+
+    document.getElementById("summaryText").textContent =
+        latestSummary;
+}
+
+document.getElementById("copySummaryBtn").onclick = function(){
+
+    if (!latestSummary) {
+        alert("No session summary available yet.");
+        return;
+    }
+
+    navigator.clipboard.writeText(latestSummary);
+
+    alert("Session summary copied!");
+}
+
+document.getElementById("downloadReportBtn").onclick = function(){
+
+    if (!latestSummary) {
+        alert("No session report available yet.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text("MindPeers AI Wellness Report", 20, y);
+
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.text("Generated On: " + new Date().toLocaleString(), 20, y);
+
+    y += 15;
+
+    doc.setFontSize(13);
+    doc.text("Emotional Assessment", 20, y);
+    y += 10;
+
+   doc.setFontSize(11);
+
+   doc.text("Primary Emotion: " + latestEmotion, 20, y);
+   y += 8;
+
+   doc.text(
+       "Detected Emotions: " + 
+       (latestDetectedEmotions.length ? latestDetectedEmotions.join(", ") : "Not Detected"),
+       20,
+       y
+   );
+   y += 8;
+
+   doc.text("Trigger: " + latestTrigger, 20, y);
+   y += 8;
+
+   doc.text("Risk Level: " + latestRisk, 20, y);
+   y += 8;
+
+   let safeMoodTrend = latestMoodTrend.replaceAll("→", " to ");
+
+   let moodLabel = latestMoodTrend.includes("→")
+       ? "Mood Trend"
+       : "Recent Mood Pattern";
+
+   doc.text(moodLabel + ": " + safeMoodTrend, 20, y);
+   y += 8;
+
+   doc.text(
+       "Sleep Concern Detected: " + (latestSleepIssue ? "Yes" : "No"),
+       20,
+       y
+   );
+   y += 8;
+
+   if (latestRisk !== "High") {
+       doc.text("Wellness Score: " + latestWellness + "/100", 20, y);
+       y += 8;
+
+       doc.text("Burnout Index: " + latestBurnout, 20, y);
+       y += 8;
+
+       doc.text("Strength: " + latestStrength, 20, y);
+       y += 8;
+   }
+
+
+    y += 5;
+
+    doc.setFontSize(13);
+    doc.text("Recommended Support Pathway", 20, y);
+
+    y += 8;
+
+    doc.setFontSize(11);
+    doc.text("Suggested Professional: " + latestTherapist, 20, y); y += 7;
+    doc.text("Recommended Action: " + latestAction, 20, y); y += 7;
+
+    if (latestRisk !== "High") {
+        doc.text("Recommended Resource: " + latestResource, 20, y); y += 7;
+    }
+
+    y += 5;
+
+    doc.setFontSize(13);
+    doc.text("Recommended Support", 20, y);
+
+    y += 8;
+
+    doc.setFontSize(11);
+    latestTips.forEach(function(tip){
+        doc.text("- " + tip, 25, y);
+        y += 7;
+    });
+
+    y += 5;
+
+    if (latestPlan.length > 0) {
+        doc.setFontSize(13);
+        doc.text("Personalized Action Plan", 20, y);
+
+        y += 8;
+
+        doc.setFontSize(11);
+        latestPlan.forEach(function(item){
+            doc.text("- " + item, 25, y);
+            y += 7;
+        });
+    }
+
+    y += 8;
+
+    doc.setFontSize(13);
+    doc.text("AI Session Summary", 20, y);
+
+    y += 8;
+
+    doc.setFontSize(11);
+
+    const summaryLines = doc.splitTextToSize(latestSummary, 170);
+    doc.text(summaryLines, 20, y);
+
+    y += summaryLines.length * 6 + 10;
+
+    doc.setFontSize(10);
+
+    const disclaimer = "Disclaimer: This report is generated by MindPeers AI for reflection and support purposes only. It is not a medical diagnosis or a substitute for professional mental health care.";
+
+    const disclaimerLines = doc.splitTextToSize(disclaimer, 170);
+    doc.text(disclaimerLines, 20, y);
+
+    doc.save("MindPeers_Wellness_Report.pdf");
+}
+
+
+
+function closeSummary(){
+
+    document.getElementById("summaryModal").style.display = "none";
+}
+
+function toggleDarkMode(){
+    document.body.classList.toggle("dark-mode");
+}
+
+</script>
+</body>
+</html>
